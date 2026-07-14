@@ -1,14 +1,16 @@
 import { useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { ChatTarget } from "./ChatTarget";
 
 const MAX_LENGTH = 2000;
 const TYPING_THROTTLE_MS = 1_000;
 
-export default function MessageComposer({ channelId }: { channelId: Id<"channels"> }) {
+export default function MessageComposer({ target }: { target: ChatTarget }) {
   const sendMessage = useMutation(api.messages.sendMessage);
   const setTyping = useMutation(api.messages.setTyping);
+  const sendDmMessage = useMutation(api.directMessages.sendDmMessage);
+  const setDmTyping = useMutation(api.directMessages.setDmTyping);
   const [content, setContent] = useState("");
   const lastTypingSentAt = useRef(0);
 
@@ -17,7 +19,8 @@ export default function MessageComposer({ channelId }: { channelId: Id<"channels
     const now = Date.now();
     if (now - lastTypingSentAt.current > TYPING_THROTTLE_MS) {
       lastTypingSentAt.current = now;
-      void setTyping({ channelId });
+      if (target.kind === "channel") void setTyping({ channelId: target.channelId });
+      else void setDmTyping({ dmThreadId: target.dmThreadId });
     }
   }
 
@@ -26,7 +29,11 @@ export default function MessageComposer({ channelId }: { channelId: Id<"channels
     const trimmed = content.trim();
     if (!trimmed || trimmed.length > MAX_LENGTH) return;
     setContent("");
-    await sendMessage({ channelId, content: trimmed });
+    if (target.kind === "channel") {
+      await sendMessage({ channelId: target.channelId, content: trimmed });
+    } else {
+      await sendDmMessage({ dmThreadId: target.dmThreadId, content: trimmed });
+    }
   }
 
   const overLimit = content.length > MAX_LENGTH;
@@ -37,7 +44,7 @@ export default function MessageComposer({ channelId }: { channelId: Id<"channels
         <input
           value={content}
           onChange={(e) => handleChange(e.target.value)}
-          placeholder="Message #general"
+          placeholder="Message"
           className="w-full bg-transparent text-gray-100 outline-none"
         />
       </div>

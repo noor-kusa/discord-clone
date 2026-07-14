@@ -44,9 +44,9 @@ export default function ServerPage() {
         </div>
         {channelId ? (
           <>
-            <MessageList channelId={channelId as Id<"channels">} />
-            <TypingIndicator channelId={channelId as Id<"channels">} />
-            <MessageComposer channelId={channelId as Id<"channels">} />
+            <MessageList target={{ kind: "channel", channelId: channelId as Id<"channels"> }} />
+            <TypingIndicator target={{ kind: "channel", channelId: channelId as Id<"channels"> }} />
+            <MessageComposer target={{ kind: "channel", channelId: channelId as Id<"channels"> }} />
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-gray-400">

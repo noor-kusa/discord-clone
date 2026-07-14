@@ -16,12 +16,16 @@ export interface MessageItemData {
 export default function MessageItem({
   message,
   currentUserId,
+  kind,
 }: {
   message: MessageItemData;
   currentUserId: Id<"users"> | undefined;
+  kind: "channel" | "dm";
 }) {
   const editMessage = useMutation(api.messages.editMessage);
   const deleteMessage = useMutation(api.messages.deleteMessage);
+  const editDmMessage = useMutation(api.directMessages.editDmMessage);
+  const deleteDmMessage = useMutation(api.directMessages.deleteDmMessage);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
 
@@ -33,14 +37,24 @@ export default function MessageItem({
 
   async function handleSaveEdit() {
     if (draft.trim().length === 0) return;
-    await editMessage({ messageId: message._id, content: draft });
+    if (kind === "channel") {
+      await editMessage({ messageId: message._id, content: draft });
+    } else {
+      await editDmMessage({ messageId: message._id, content: draft });
+    }
     setEditing(false);
   }
 
+  async function handleDelete() {
+    if (kind === "channel") {
+      await deleteMessage({ messageId: message._id });
+    } else {
+      await deleteDmMessage({ messageId: message._id });
+    }
+  }
+
   if (message.deletedAt) {
-    return (
-      <div className="px-4 py-1 text-sm italic text-gray-500">Message deleted</div>
-    );
+    return <div className="px-4 py-1 text-sm italic text-gray-500">Message deleted</div>;
   }
 
   return (
@@ -80,10 +94,7 @@ export default function MessageItem({
           <button onClick={() => setEditing(true)} className="text-xs text-gray-400 hover:underline">
             Edit
           </button>
-          <button
-            onClick={() => void deleteMessage({ messageId: message._id })}
-            className="text-xs text-red-400 hover:underline"
-          >
+          <button onClick={() => void handleDelete()} className="text-xs text-red-400 hover:underline">
             Delete
           </button>
         </div>
