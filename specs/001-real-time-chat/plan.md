@@ -110,6 +110,61 @@ tests/
 functions under `convex/`, as specified in the guide. No separate frontend/backend repos and no
 mobile targets — matches Project Type "Web application" above.
 
+## Phase 5 Audit: WebRTC Signaling Flow Walkthrough
+
+Required by the guide before task breakdown: confirm two clients in a voice channel can reach a
+connected `RTCPeerConnection` using only the tables in data-model.md (`calls`, `callParticipants`,
+`signals`). Step by step:
+
+1. User A and User B both call `calls.joinCall({channelId})`. The first caller creates the
+   `calls` row; both get a `callParticipants` row. Each client now has a live
+   `getActiveCall`/`listSignalsForMe` subscription open.
+2. Each client deterministically computes polite/impolite role from the two participants' user
+   IDs (lower ID = polite, per research.md §3) — no extra table needed, this is derived client-side.
+3. One side's `RTCPeerConnection.onnegotiationneeded` fires; it calls `createOffer`,
+   `setLocalDescription(offer)`, then `signals.sendSignal({callId, toUserId: <peer>, type: "offer", payload: SDP})`.
+4. The peer's `listSignalsForMe` subscription (filtered to unconsumed rows addressed to it) pushes
+   the new offer row automatically — no polling.
+5. The peer applies `setRemoteDescription(offer)`, immediately calls `ackSignal` on that row, then
+   `createAnswer` → `setLocalDescription(answer)` → `sendSignal(type: "answer")` back.
+6. The original side receives the answer via its own subscription, applies
+   `setRemoteDescription(answer)`, and `ackSignal`s it.
+7. In parallel, each side's `onicecandidate` fires repeatedly; each candidate is sent immediately
+   as its own `signals` row (`type: "ice-candidate"`), not batched.
+8. A candidate arriving before the local side has called `setRemoteDescription` is queued in
+   memory and flushed right after `setRemoteDescription` resolves (research.md §3 — this is the
+   "connection never completes" bug from the guide's troubleshooting section). Each applied
+   candidate is `ackSignal`'d.
+9. If both sides happen to create offers at nearly the same time (e.g., simultaneous join), the
+   polite peer detects the incoming offer collides with its own pending local offer and performs
+   `setLocalDescription({type: "rollback"})` before accepting the remote offer (Perfect
+   Negotiation) — no manual "who goes first" table needed; role is derived per step 2.
+10. Once ICE checks complete, `connectionState` becomes `"connected"`; `ontrack` fires on both
+    sides and each attaches the remote `MediaStream` to a `<video autoPlay playsInline>` element's
+    `srcObject`.
+
+This confirms the `signals` table plus reactive `useQuery` fully replaces a Socket.io signaling
+server — no additional real-time transport or table is required.
+
+## Audit Findings & Fixes Applied
+
+Self-audit against the constitution and spec (Phase 5), performed before `/speckit-tasks`:
+
+- **Gap found**: FR-027 (owner leaves/deletes account cascades server deletion) had no
+  corresponding mutation in contracts/convex-api.md. **Fixed**: added `users.deleteAccount()` and
+  `servers.leaveServer()` to contracts/convex-api.md.
+- **Gap found**: the signaling contract described consumed-row cleanup only vaguely ("responsible
+  for deleting/acking"), risking re-application of the same SDP/ICE payload on every reactive
+  update. **Fixed**: added an explicit `signals.ackSignal({signalId})` mutation and a
+  `consumedAt` field to the `signals` table in data-model.md; `listSignalsForMe` now returns only
+  unconsumed rows, oldest-first.
+- **Over-engineering check**: no component library, state-management library, SFU/MCU, or
+  separate signaling server was introduced — full-mesh WebRTC + Convex reactivity only, per
+  Constitution Principle I. No violations found.
+- **Spec ↔ plan traceability**: every FR-001–FR-027 maps to at least one contract function; no
+  plan/contract entry exists without a corresponding spec requirement (verified by inspection
+  against contracts/convex-api.md and data-model.md above).
+
 ## Complexity Tracking
 
 *No violations — table intentionally empty.*

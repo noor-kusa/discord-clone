@@ -137,8 +137,9 @@ Indexes: `by_callId`, `by_callId_userId`.
 | `type` | "offer" \| "answer" \| "ice-candidate" | |
 | `payload` | string (JSON-encoded SDP or ICE candidate) | |
 | `createdAt` | number | |
+| `consumedAt` | number \| null | set by `ackSignal`; `listSignalsForMe` only returns rows where this is null |
 
-Indexes: `by_callId_toUserId` (each client subscribes filtered to messages addressed to itself).
+Indexes: `by_callId_toUserId` (each client subscribes filtered to unconsumed messages addressed to itself).
 
 ## Relationships summary
 

@@ -11,6 +11,9 @@ authorized for the resource touched (Constitution Principle IV) before making an
 - `mutation updateProfile({displayName?, avatarUrl?})` → caller only, updates own profile.
 - `mutation heartbeat()` → upserts `presence.lastSeen = now` for the caller.
 - `query getPresence({userIds: Id<"users">[]})` → `{userId, isOnline}[]`, derived from `lastSeen`.
+- `mutation deleteAccount()` → caller only; cascades to delete every server the caller owns
+  (channels, messages, members — FR-027) and removes the caller's `serverMembers` rows in servers
+  they don't own.
 
 ## servers.ts
 
@@ -24,6 +27,9 @@ authorized for the resource touched (Constitution Principle IV) before making an
   just returns the server).
 - `mutation removeMember({serverId, userId})` → owner-only; deletes the `serverMembers` row and
   disconnects that user from any active call in that server (Edge Cases).
+- `mutation leaveServer({serverId})` → caller removes their own membership. If the caller is the
+  server's owner, this instead deletes the whole server, its channels, messages, and remaining
+  members (FR-027) — there is no ownership-transfer path in v1.
 - `query listMyServers()` → all servers the caller owns or is a member of.
 - `query getServerMembers({serverId})` → members joined with `presence`, membership-gated.
 
@@ -75,7 +81,9 @@ authorized for the resource touched (Constitution Principle IV) before making an
 
 - `mutation sendSignal({callId, toUserId, type, payload})` → call-participant-gated (caller and
   `toUserId` must both be active participants in `callId`).
-- `query listSignalsForMe({callId})` → returns signals addressed to the caller for this call,
-  newest-first; the client applies them in order and the frontend hook is responsible for
-  deleting/acking consumed rows (or the query filters to only unconsumed rows) to avoid re-applying
-  the same SDP/ICE payload twice.
+- `query listSignalsForMe({callId})` → returns **unconsumed** signals addressed to the caller for
+  this call, oldest-first (so offers/answers/ICE candidates are applied in the order generated).
+- `mutation ackSignal({signalId})` → marks a signal row consumed (or deletes it) once the client
+  has applied it (`setRemoteDescription` / `addIceCandidate`). The client MUST call this
+  immediately after successfully applying a signal so `listSignalsForMe`'s live subscription never
+  re-delivers an already-applied SDP/ICE payload on its next reactive update.
