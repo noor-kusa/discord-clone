@@ -8,6 +8,15 @@
 
 **Input**: User description: "Build a real-time chat and video calling application modeled on Discord. Users sign up and log in with a display name, avatar, and visible online/offline status. A logged-in user can create a server (a named community), become its owner, and invite others via an invite link. Every server starts with a default 'general' text channel; owners can create, rename, and delete text and voice channels. Members send real-time text messages with edit/delete, infinite scroll history, and typing indicators. Any user can open a 1-on-1 DM with another member of a shared server. Members can join a voice channel to start or join a live call (2-4 participants), toggle mic/camera, see who's speaking/muted, and leave. Out of scope for v1: attachments, reactions, threads, roles/permissions beyond owner vs member, screen sharing, mobile apps, message search."
 
+## Clarifications
+
+### Session 2026-07-14
+
+- Q: What happens to a server if its owner leaves or deletes their account? → A: The server is deleted entirely; no ownership-transfer feature in v1.
+- Q: A voice channel targets up to 4 participants — what happens when a 5th user tries to join? → A: Hard cap — the join is rejected and the user sees a "channel full" message.
+- Q: How quickly must a user's offline status become visible to others after they disconnect? → A: Within 10 seconds.
+- Q: Can a single user create/own more than one server? → A: Yes, unlimited — no per-user server quota.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Real-Time Text Messaging in a Channel (Priority: P1)
@@ -103,7 +112,8 @@ A server owner creates, renames, and deletes text and voice channels within thei
 - What happens when a member tries to send a message longer than the maximum length? The system rejects it client-side before sending, with the limit clearly indicated.
 - What happens when someone opens an invite link to a server they're already a member of? They are taken directly into the server, not added as a duplicate member.
 - What happens when the server owner removes a member who is currently in a call in that server? They are disconnected from the call and lose access to the server's channels.
-- What happens when a fifth user tries to join a voice channel already at the 4-participant target capacity? The system indicates the channel/call is full; product must at minimum support 2 concurrent participants without failure.
+- What happens when a fifth user tries to join a voice channel already at its 4-participant capacity? The join is rejected with a "channel full" message; 4 is a hard cap, not a soft target.
+- What happens when a server's owner leaves the server or deletes their account? The server and all of its channels, messages, and membership records are deleted; there is no ownership-transfer mechanism in v1.
 - What happens when two users try to edit/delete the same message concurrently? The authoritative server state wins; only the message author's edit/delete requests are accepted in the first place.
 - What happens when a user's own display name/avatar changes while they have historical messages? Historical messages reflect the display name/avatar at time of viewing (denormalized read is acceptable, but must not error).
 
@@ -127,7 +137,7 @@ A server owner creates, renames, and deletes text and voice channels within thei
 - **FR-014**: System MUST show a live typing indicator when a member is composing a message in a channel or DM.
 - **FR-015**: Any user MUST be able to open a 1-on-1 direct-message conversation with another user with whom they share at least one server; DMs support the same real-time send/edit/delete behavior as channel messages.
 - **FR-016**: System MUST prevent a DM from being initiated between two users who do not share any server.
-- **FR-017**: Members MUST be able to join a voice channel, which starts or joins a live call with the other members currently connected to that channel, supporting at least 2 and targeting up to 4 simultaneous participants.
+- **FR-017**: Members MUST be able to join a voice channel, which starts or joins a live call with the other members currently connected to that channel, supporting at least 2 and up to a hard cap of 4 simultaneous participants; a 5th join attempt MUST be rejected with a "channel full" message.
 - **FR-018**: Call participants MUST be able to toggle their own microphone and camera; other participants MUST see updated video tiles and speaking/muted state in real time.
 - **FR-019**: The channel list MUST show who is currently connected to each voice channel.
 - **FR-020**: Call participants MUST be able to leave a call at any time, with other participants seeing them disconnect.
@@ -135,6 +145,8 @@ A server owner creates, renames, and deletes text and voice channels within thei
 - **FR-022**: System MUST end a voice channel's active call immediately if that channel is deleted.
 - **FR-023**: System MUST enforce a maximum message length of 2000 characters, rejecting longer messages before they are sent.
 - **FR-024**: Invite links MUST NOT expire in v1.
+- **FR-026**: A user MUST be able to create/own more than one server; there is no per-user server quota in v1.
+- **FR-027**: When a server's owner leaves the server or deletes their account, the system MUST delete that server along with its channels, messages, and membership records; no ownership transfer is supported in v1.
 - **FR-025**: System MUST NOT support message attachments/files, reactions, threads, roles/permissions beyond owner vs. member, screen sharing, mobile apps, or message search in this version (explicitly out of scope).
 
 ### Key Entities
@@ -156,7 +168,7 @@ A server owner creates, renames, and deletes text and voice channels within thei
 - **SC-001**: A new message sent by one member becomes visible to another member viewing the same channel in under 1 second, with no manual refresh.
 - **SC-002**: A member can create a server, generate an invite, and have a second user join and appear in the member list in under 2 minutes end-to-end.
 - **SC-003**: Two to four participants can join the same voice channel and maintain a stable call (audio/video visible to one another) for the duration of a normal conversation without the session dropping unexpectedly.
-- **SC-004**: A member's online/offline status change (e.g., closing the app) is reflected to other members within a few seconds.
+- **SC-004**: A member's online/offline status change (e.g., closing the app) is reflected to other members within 10 seconds.
 - **SC-005**: 100% of a message's edit/delete actions are restricted to that message's original author, verified across all tested scenarios.
 - **SC-006**: A user can locate and open a DM with any shared-server member in under 3 clicks/taps from the main interface.
 
