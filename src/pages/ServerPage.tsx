@@ -12,6 +12,7 @@ import ServerSettings from "../components/servers/ServerSettings";
 import MessageList from "../components/chat/MessageList";
 import MessageComposer from "../components/chat/MessageComposer";
 import TypingIndicator from "../components/chat/TypingIndicator";
+import VoiceChannelPanel from "../components/call/VoiceChannelPanel";
 
 export default function ServerPage() {
   const { serverId, channelId } = useParams<{ serverId: string; channelId?: string }>();
@@ -22,6 +23,8 @@ export default function ServerPage() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const servers = useQuery(api.servers.listMyServers);
   const server = servers?.find((s) => s._id === serverId);
+  const channels = useQuery(api.channels.listChannels, { serverId: serverId as Id<"servers"> });
+  const activeChannel = channels?.find((c) => c._id === channelId);
 
   if (!serverId) return null;
   const typedServerId = serverId as Id<"servers">;
@@ -42,7 +45,9 @@ export default function ServerPage() {
             Settings
           </button>
         </div>
-        {channelId ? (
+        {channelId && activeChannel?.type === "voice" ? (
+          <VoiceChannelPanel target={{ kind: "channel", channelId: channelId as Id<"channels"> }} />
+        ) : channelId ? (
           <>
             <MessageList target={{ kind: "channel", channelId: channelId as Id<"channels"> }} />
             <TypingIndicator target={{ kind: "channel", channelId: channelId as Id<"channels"> }} />

@@ -9,11 +9,13 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as calls from "../calls.js";
 import type * as channels from "../channels.js";
 import type * as directMessages from "../directMessages.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as servers from "../servers.js";
+import type * as signals from "../signals.js";
 import type * as users from "../users.js";
 
 import type {
@@ -24,11 +26,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  calls: typeof calls;
   channels: typeof channels;
   directMessages: typeof directMessages;
   http: typeof http;
   messages: typeof messages;
   servers: typeof servers;
+  signals: typeof signals;
   users: typeof users;
 }>;
 

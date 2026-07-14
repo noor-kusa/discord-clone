@@ -13,10 +13,15 @@ export default function ChannelList({
   onCreateChannel: () => void;
 }) {
   const channels = useQuery(api.channels.listChannels, { serverId });
+  const occupancy = useQuery(api.calls.listVoiceChannelOccupancy, { serverId });
   const navigate = useNavigate();
 
   const textChannels = (channels ?? []).filter((c) => c.type === "text");
   const voiceChannels = (channels ?? []).filter((c) => c.type === "voice");
+
+  function membersFor(channelId: Id<"channels">) {
+    return occupancy?.find((o) => o.channelId === channelId)?.members ?? [];
+  }
 
   return (
     <div className="flex w-60 shrink-0 flex-col bg-discord-sidebar">
@@ -49,15 +54,21 @@ export default function ChannelList({
           Voice Channels
         </p>
         {voiceChannels.map((channel) => (
-          <button
-            key={channel._id}
-            onClick={() => navigate(`/servers/${serverId}/channels/${channel._id}`)}
-            className={`block w-full rounded px-2 py-1 text-left text-sm text-gray-300 hover:bg-discord-bg ${
-              activeChannelId === channel._id ? "bg-discord-bg text-white" : ""
-            }`}
-          >
-            🔊 {channel.name}
-          </button>
+          <div key={channel._id}>
+            <button
+              onClick={() => navigate(`/servers/${serverId}/channels/${channel._id}`)}
+              className={`block w-full rounded px-2 py-1 text-left text-sm text-gray-300 hover:bg-discord-bg ${
+                activeChannelId === channel._id ? "bg-discord-bg text-white" : ""
+              }`}
+            >
+              🔊 {channel.name}
+            </button>
+            {membersFor(channel._id).map((name) => (
+              <div key={name} className="pl-6 text-xs text-gray-400">
+                🎙️ {name}
+              </div>
+            ))}
+          </div>
         ))}
       </div>
     </div>
