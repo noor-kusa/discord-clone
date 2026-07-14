@@ -9,6 +9,9 @@ import MemberList from "../components/layout/MemberList";
 import CreateServerModal from "../components/servers/CreateServerModal";
 import CreateChannelModal from "../components/channels/CreateChannelModal";
 import ServerSettings from "../components/servers/ServerSettings";
+import MessageList from "../components/chat/MessageList";
+import MessageComposer from "../components/chat/MessageComposer";
+import TypingIndicator from "../components/chat/TypingIndicator";
 
 export default function ServerPage() {
   const { serverId, channelId } = useParams<{ serverId: string; channelId?: string }>();
@@ -39,11 +42,17 @@ export default function ServerPage() {
             Settings
           </button>
         </div>
-        <div className="flex flex-1 items-center justify-center text-gray-400">
-          {channelId
-            ? "Chat is coming in the next milestone (User Story 1)."
-            : "Select a channel to get started."}
-        </div>
+        {channelId ? (
+          <>
+            <MessageList channelId={channelId as Id<"channels">} />
+            <TypingIndicator channelId={channelId as Id<"channels">} />
+            <MessageComposer channelId={channelId as Id<"channels">} />
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-gray-400">
+            Select a channel to get started.
+          </div>
+        )}
       </div>
       <MemberList serverId={typedServerId} />
 

@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as channels from "../channels.js";
 import type * as http from "../http.js";
+import type * as messages from "../messages.js";
 import type * as servers from "../servers.js";
 import type * as users from "../users.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   channels: typeof channels;
   http: typeof http;
+  messages: typeof messages;
   servers: typeof servers;
   users: typeof users;
 }>;
