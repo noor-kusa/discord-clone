@@ -6,14 +6,18 @@ only).
 
 ## users
 
+Extends Convex Auth's own `users` table (from `authTables`) rather than a separate table — the
+auth system's user document *is* the app profile, so `getAuthUserId(ctx)` returns this table's
+`_id` directly with no separate lookup indirection.
+
 | Field | Type | Notes |
 |---|---|---|
-| `_id` | Id | Convex-generated |
-| `displayName` | string | required |
+| `_id` | Id | Convex-generated; also the identity used by `getAuthUserId` |
+| `email` | string | from Convex Auth's built-in fields |
+| `displayName` | string | required; set via the Password provider's `profile()` callback at signup |
 | `avatarUrl` | string | optional; default avatar if absent |
-| `authId` | string | link to Convex Auth identity |
 
-Indexes: `by_authId`.
+Indexes: `email` (inherited from `authTables`).
 
 ## presence
 
