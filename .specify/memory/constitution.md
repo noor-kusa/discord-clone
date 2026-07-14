@@ -1,50 +1,81 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: (none) → 1.0.0
+Modified principles: N/A (initial ratification)
+Added sections: Core Principles (6), Technology Constraints, Development Workflow, Governance
+Removed sections: none
+Templates requiring updates:
+  ✅ .specify/templates/plan-template.md (Constitution Check section aligns with these principles)
+  ✅ .specify/templates/spec-template.md (no changes needed; scope-only, no stack references)
+  ✅ .specify/templates/tasks-template.md (task categorization compatible with incremental/testable principles)
+Follow-up TODOs: none
+-->
+
+# Discord Clone Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Simplicity First
+Prefer the smallest solution that satisfies the current spec. No speculative
+abstractions, no libraries beyond those named in the plan, and no
+generalization for hypothetical future features. Every added dependency or
+abstraction MUST be traceable to a concrete requirement in the spec or plan.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Real-Time Correctness
+The UI MUST reflect server state via reactive subscriptions. Manual polling,
+forced page refreshes, or client-side caches that can silently go stale are
+prohibited. If a screen shows data that can change on the server, it MUST be
+backed by a live subscription.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Type Safety End-to-End
+TypeScript strict mode is mandatory across frontend and backend code.
+Database access MUST go through typed schema definitions only — no untyped
+document access or ad-hoc `any` casts to bypass the type system.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Security Basics (NON-NEGOTIABLE)
+Every backend function MUST validate that the caller is authenticated and
+authorized for the specific resource it touches (e.g., a channel mutation
+verifies the caller is a member of that channel's server). Missing
+authorization checks are treated as bugs, not follow-up work.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Incremental Delivery
+The application MUST build and run after each completed user story. The main
+branch is never left in a broken state between milestones. Work is
+implemented and verified story-by-story rather than all at once.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### VI. Testable Seams
+Business logic MUST be separated from UI rendering so it can be tested
+independently. Critical flows — sending a message, joining a call — require
+at least one smoke test before being considered done.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## Technology Constraints
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Frontend: React + TypeScript + Vite, styled with Tailwind CSS only (no
+component library). Backend: Convex for database, queries/mutations, and
+auth. Real-time voice/video: native WebRTC `RTCPeerConnection` with a
+full-mesh topology (up to 4 peers), signaled through Convex tables (no
+separate WebSocket/Socket.io server). Public STUN only in v1; the lack of a
+TURN server is a documented limitation, not a defect to chase indefinitely.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Development Workflow
+
+Follow Spec-Driven Development: constitution → specify → clarify → plan →
+analyze → tasks → implement, in that order. The spec phase describes what
+and why only — the technology stack is introduced no earlier than the plan
+phase. Commit after every phase and after every implementation milestone, so
+history documents the process, not just the final result. Verify each
+milestone manually (e.g., two browsers for real-time features) before moving
+to the next.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes ad-hoc practices for this project. Amendments
+require an explicit update to this file with a version bump and a Sync
+Impact Report noting what changed and why. Versioning follows semantic
+versioning: MAJOR for backward-incompatible principle removals/redefinitions,
+MINOR for new principles or materially expanded guidance, PATCH for wording
+or clarification only. All plans and task breakdowns MUST be checked against
+these principles before implementation begins; unjustified complexity or
+missing authorization checks are grounds to send a plan back for revision.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-07-14 | **Last Amended**: 2026-07-14
