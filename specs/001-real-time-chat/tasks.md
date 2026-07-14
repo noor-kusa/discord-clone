@@ -85,6 +85,7 @@ in `tests/unit/`.
 ### Implementation for User Story 2
 
 - [ ] T019 [P] [US2] Implement `convex/servers.ts`: `createServer` (+ default "general" channel + owner membership in one mutation, FR-003/FR-004), `renameServer`, `deleteServer`, `regenerateInvite`, `joinServerByInvite`, `removeMember`, `leaveServer` (FR-027), `listMyServers`, `getServerMembers`
+- [ ] T019a [P] [US2] Implement `convex/channels.ts`: `createChannel`, `renameChannel`, `deleteChannel` (owner-only; cascades messages per FR-009, ends active call per FR-022), `listChannels` — pulled forward from channel-management because US1 and US3 both need to query channels well before US5's owner-management UI lands
 - [ ] T020 [US2] Build `CreateServerModal.tsx` in `src/components/servers/`
 - [ ] T021 [US2] Build `InviteModal.tsx` (generate/copy invite link) and the invite-redeem route/page in `src/components/servers/` and `src/pages/`
 - [ ] T022 [US2] Build `ServerRail.tsx` icons list using `useQuery(listMyServers)` in `src/components/layout/`
@@ -113,7 +114,7 @@ in `tests/unit/`.
 - [ ] T029 [US3] Build `VoiceChannelPanel.tsx` + `VideoTile.tsx` in `src/components/call/` (join/leave, render remote streams via `ontrack` → `srcObject`, `autoPlay playsInline`)
 - [ ] T030 [US3] Build `CallControls.tsx` (mic/camera toggle, leave) in `src/components/call/`
 - [ ] T031 [US3] Show "connected to voice channel" occupancy in the channel list using `useQuery(listVoiceChannelOccupancy)` (FR-019)
-- [ ] T032 [US3] Wire `deleteChannel` (Phase 6 dependency) to end any active call immediately when a voice channel is deleted (FR-022) — implemented as part of T035, verified here
+- [ ] T032 [US3] Verify `deleteChannel` (from T019a, Phase 4/US2) ends any active call immediately when a voice channel is deleted (FR-022) — this is a verification task; T019a already implements the cascade
 - [ ] T033 [US3] Support starting a 1-on-1 video call from an open DM (`joinCall({dmThreadId})`, FR-021) — depends on US4 (Phase 6) for the DM UI shell
 
 **Checkpoint**: User Story 3 independently testable per quickstart.md M5.
@@ -146,10 +147,12 @@ in `tests/unit/`.
 
 ### Implementation for User Story 5
 
-- [ ] T039 [P] [US5] Implement `convex/channels.ts`: `createChannel`, `renameChannel`, `deleteChannel` (owner-only; cascades messages per FR-009, ends active call per FR-022), `listChannels`
-- [ ] T040 [US5] Build `ChannelList.tsx` in `src/components/channels/` using `useQuery(listChannels)`
+**Note**: `convex/channels.ts` backend (T019a) was already implemented in Phase 4/US2, since US1
+and US3 need to query channels before this story's UI lands. This story is UI-only.
+
+- [ ] T040 [US5] Build `ChannelList.tsx` in `src/components/channels/` using `useQuery(listChannels)` (from T019a)
 - [ ] T041 [US5] Build `CreateChannelModal.tsx` (name + text/voice type) in `src/components/channels/`
-- [ ] T042 [US5] Add rename/delete controls to `ChannelList.tsx`, gated to owner only in the UI (server-side gate already in T039)
+- [ ] T042 [US5] Add rename/delete controls to `ChannelList.tsx`, gated to owner only in the UI (server-side gate already in T019a)
 
 **Checkpoint**: All five user stories independently functional. Full quickstart.md validation (M1–M5) should now pass end-to-end.
 
@@ -175,19 +178,19 @@ in `tests/unit/`.
 - **Setup (Phase 1)**: No dependencies.
 - **Foundational (Phase 2)**: Depends on Setup — BLOCKS all user stories.
 - **US1 (Phase 3)** and **US2 (Phase 4)**: Both P1; can proceed in parallel after Foundational, but US1 needs at least a seeded server/channel to render against (use Convex dashboard seeding, not the UI, until US2 lands — per US1's Independent Test).
-- **US3 (Phase 5)**: Depends on Foundational + US2 (needs real channels to attach voice calls to; T032/T033 have soft dependencies on US5/US4 UI but the call mechanics themselves only need US2).
+- **US3 (Phase 5)**: Depends on Foundational + US2 (T019a gives it real channels to attach voice calls to; T033 has a soft dependency on US4's DM UI shell, T032 is a verification task depending on T019a which already exists by this point).
 - **US4 (Phase 6)**: Depends on Foundational + US2 (shared-server check) + reuses US1 components.
-- **US5 (Phase 7)**: Depends on Foundational + US2 (channels belong to servers).
+- **US5 (Phase 7)**: Depends on Foundational + US2 (T019a backend already built there; this phase is UI-only).
 - **Polish (Phase 8)**: Depends on all desired user stories being complete.
 
 ### Recommended implementation order (matches guide's milestone numbering M1–M5)
 
 1. Setup + Foundational → M1 (Setup/Auth)
-2. US2 → M2 (Servers/Channels, minimal channel CRUD via US5's `createChannel` reused early if needed for non-"general" testing)
+2. US2 (including T019a channels backend) → M2 (Servers/Channels)
 3. US1 → M3 (Chat)
 4. US4 → M4 (DMs/Presence, plus T043 from Polish)
 5. US3 → M5 (Video) — completing T033/T038 cross-links with US4
-6. US5 → full channel management
+6. US5 → owner-facing channel-management UI (backend already existed since M2)
 7. Polish
 
 ### Parallel Opportunities
@@ -213,6 +216,22 @@ checkpoint passes manual verification, per Constitution Principle V (never leave
 the guide's "commit after every milestone" instruction.
 
 ---
+
+## Cross-Artifact Analysis (`/speckit-analyze`, run after this file was generated)
+
+- **Inconsistency found & fixed**: `convex/channels.ts` (list/create/delete channels) was
+  originally scheduled entirely in Phase 7 (US5, P3/last), but US1 (chat) and US3 (calls) both
+  need to query channels much earlier. Fixed by pulling the backend implementation forward into
+  T019a (Phase 4/US2) and leaving Phase 7 as owner-management UI only, reusing T019a.
+- **Inconsistency found & fixed**: T032 referenced a non-existent "T035 in Phase 6" for the
+  `deleteChannel`→ends-active-call cascade; corrected to reference T019a where that logic actually
+  lives.
+- **FR ↔ task coverage**: every FR-001–FR-027 traces to at least one task, either directly (task
+  text names the FR) or through its owning story's tasks (e.g., FR-001/002 via Foundational
+  Phase 2, FR-008 via T019a, FR-018/020 via T026/T030). FR-025 and FR-026 correctly have no
+  implementation task — they are "must NOT build this" / "must NOT restrict this" requirements.
+- **No duplication or terminology drift** found between spec.md, plan.md, data-model.md,
+  contracts/convex-api.md, and tasks.md after the two fixes above.
 
 ## Notes
 
