@@ -12,6 +12,7 @@ export default function MessageComposer({ target }: { target: ChatTarget }) {
   const sendDmMessage = useMutation(api.directMessages.sendDmMessage);
   const setDmTyping = useMutation(api.directMessages.setDmTyping);
   const [content, setContent] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const lastTypingSentAt = useRef(0);
 
   function handleChange(value: string) {
@@ -28,11 +29,17 @@ export default function MessageComposer({ target }: { target: ChatTarget }) {
     e.preventDefault();
     const trimmed = content.trim();
     if (!trimmed || trimmed.length > MAX_LENGTH) return;
+    setError(null);
     setContent("");
-    if (target.kind === "channel") {
-      await sendMessage({ channelId: target.channelId, content: trimmed });
-    } else {
-      await sendDmMessage({ dmThreadId: target.dmThreadId, content: trimmed });
+    try {
+      if (target.kind === "channel") {
+        await sendMessage({ channelId: target.channelId, content: trimmed });
+      } else {
+        await sendDmMessage({ dmThreadId: target.dmThreadId, content: trimmed });
+      }
+    } catch (err) {
+      setContent(trimmed);
+      setError(err instanceof Error ? err.message : "Failed to send message");
     }
   }
 
@@ -53,6 +60,7 @@ export default function MessageComposer({ target }: { target: ChatTarget }) {
           Message exceeds {MAX_LENGTH} character limit ({content.length}/{MAX_LENGTH}).
         </p>
       )}
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </form>
   );
 }

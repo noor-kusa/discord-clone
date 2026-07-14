@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useCall } from "../../hooks/useCall";
@@ -9,9 +10,23 @@ export default function VoiceChannelPanel({ target }: { target: ChatTarget }) {
   const currentUser = useQuery(api.users.getCurrentUser);
   const { activeCall, joined, join, leave, micOn, cameraOn, toggleMic, toggleCamera, localStream, remoteStreams } =
     useCall(target);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const participantCount = activeCall?.participants.length ?? 0;
   const isFull = participantCount >= 4 && !joined;
+
+  async function handleJoin() {
+    setJoinError(null);
+    try {
+      await join();
+    } catch (err) {
+      setJoinError(
+        err instanceof Error
+          ? `Couldn't join: ${err.message}. Check your browser's camera/mic permissions.`
+          : "Couldn't join the call.",
+      );
+    }
+  }
 
   if (!joined) {
     return (
@@ -22,12 +37,13 @@ export default function VoiceChannelPanel({ target }: { target: ChatTarget }) {
             : "No one is in this voice channel yet."}
         </p>
         <button
-          onClick={() => void join()}
+          onClick={() => void handleJoin()}
           disabled={isFull}
           className="rounded bg-discord-accent px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isFull ? "Channel full" : "Join Voice"}
         </button>
+        {joinError && <p className="max-w-sm text-center text-sm text-red-400">{joinError}</p>}
       </div>
     );
   }

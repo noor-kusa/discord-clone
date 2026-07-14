@@ -36,6 +36,7 @@ export default function ServerPage() {
       <ChannelList
         serverId={typedServerId}
         activeChannelId={channelId as Id<"channels"> | undefined}
+        isOwner={isOwner}
         onCreateChannel={() => setShowCreateChannel(true)}
       />
       <div className="flex flex-1 flex-col">

@@ -8,15 +8,19 @@ export default function CreateServerModal({ onClose }: { onClose: () => void }) 
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     setSubmitting(true);
+    setError(null);
     try {
       const serverId = await createServer({ name: name.trim() });
       onClose();
       navigate(`/servers/${serverId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create server");
     } finally {
       setSubmitting(false);
     }
@@ -40,6 +44,7 @@ export default function CreateServerModal({ onClose }: { onClose: () => void }) 
           className="mb-4 w-full rounded bg-discord-bg px-3 py-2 text-gray-100 outline-none"
           required
         />
+        {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
         <div className="flex justify-end gap-2">
           <button
             type="button"
